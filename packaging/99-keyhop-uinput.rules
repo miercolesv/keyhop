@@ -1,0 +1,5 @@
+# Let members of the `input` group create virtual input devices (needed by keyhop).
+# Install:  sudo cp 99-keyhop-uinput.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger
+KERNEL=="uinput", SUBSYSTEM=="misc", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput"
+# Raw HID access to Keychron keyboards (vendor 3434) for `keyhop device`.
+KERNEL=="hidraw*", ATTRS{idVendor}=="3434", GROUP="input", MODE="0660"

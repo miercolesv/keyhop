@@ -1,0 +1,93 @@
+name: Release
+
+# Push a tag like v0.1.0 to build every platform and publish a GitHub release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macos-universal, os: macos-latest }
+          - { name: linux-x86_64, os: ubuntu-latest, target: x86_64-unknown-linux-musl }
+          - { name: linux-aarch64, os: ubuntu-24.04-arm, target: aarch64-unknown-linux-musl }
+          - { name: windows-x86_64, os: windows-latest, target: x86_64-pc-windows-msvc }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Keep build-machine paths out of the binary
+        run: |
+          ws="$GITHUB_WORKSPACE"; ch="${CARGO_HOME:-$HOME/.cargo}"
+          if [ "$RUNNER_OS" = Windows ]; then ws=$(cygpath -w "$ws"); ch=$(cygpath -w "$ch"); fi
+          echo "RUSTFLAGS=--remap-path-prefix=$ws=keyhop --remap-path-prefix=$ch=cargo" >> "$GITHUB_ENV"
+          echo "PKG=keyhop-${GITHUB_REF_NAME#v}-${{ matrix.name }}" >> "$GITHUB_ENV"
+
+      - name: Build (macOS universal)
+        if: runner.os == 'macOS'
+        run: |
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          cargo build --release --target aarch64-apple-darwin
+          cargo build --release --target x86_64-apple-darwin
+          mkdir -p "$PKG"
+          lipo -create -output "$PKG/keyhop" \
+            target/aarch64-apple-darwin/release/keyhop target/x86_64-apple-darwin/release/keyhop
+          strip "$PKG/keyhop"
+          codesign --force --sign - --identifier keyhop "$PKG/keyhop"
+
+      - name: Build (Linux, static)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq musl-tools
+          rustup target add ${{ matrix.target }}
+          cargo build --release --target ${{ matrix.target }}
+          mkdir -p "$PKG" && cp target/${{ matrix.target }}/release/keyhop "$PKG/"
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cargo build --release --target ${{ matrix.target }}
+          mkdir -p "$PKG" && cp target/${{ matrix.target }}/release/keyhop.exe "$PKG/"
+
+      - name: Package
+        run: |
+          cp README.md LICENSE "$PKG/"
+          case "$RUNNER_OS" in
+            Windows) 7z a -tzip -bso0 "$PKG.zip" "$PKG" ;;
+            macOS) tar --uid 0 --gid 0 --uname '' --gname '' --no-xattrs -czf "$PKG.tar.gz" "$PKG" ;;
+            *) tar --owner=0 --group=0 --numeric-owner -czf "$PKG.tar.gz" "$PKG" ;;
+          esac
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: keyhop-*.*z*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist && sha256sum keyhop-* > SHA256SUMS && cd ..
+          version="${GITHUB_REF_NAME#v}"
+          # Release notes: this version's section of CHANGELOG.md.
+          awk -v v="$version" '$0 ~ "^## \\[" v "\\]" {on=1; next} /^## \[/ {on=0} on' CHANGELOG.md > notes.md
+          printf '\nVerify downloads with `sha256sum -c SHA256SUMS --ignore-missing`.\n' >> notes.md
+          gh release create "$GITHUB_REF_NAME" dist/* --title "keyhop $version" --notes-file notes.md

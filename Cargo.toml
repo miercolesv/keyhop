@@ -1,0 +1,39 @@
+[package]
+name = "keyhop"
+version = "0.1.0"
+edition = "2021"
+description = "Lean cross-platform keyboard helper: app-launch hotkeys, smooth scrolling, encrypted keyboard/mouse sharing, file transfer and keyboard settings"
+license = "MIT"
+readme = "README.md"
+keywords = ["keyboard", "kvm", "hotkeys", "smooth-scrolling", "keychron"]
+categories = ["command-line-utilities"]
+
+[dependencies]
+# Noise_XX_25519_ChaChaPoly_BLAKE2s: authenticated, encrypted channel (pure Rust, audited primitives)
+snow = { version = "0.10", default-features = false, features = ["default-resolver", "use-chacha20poly1305", "use-blake2", "use-curve25519", "use-getrandom"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+evdev = "0.13"
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_System_LibraryLoader",
+  "Win32_System_Console",
+  "Win32_System_Threading",
+  "Win32_System_IO",
+  "Win32_Storage_FileSystem",
+  "Win32_Security",
+  "Win32_Devices_HumanInterfaceDevice",
+  "Win32_Devices_DeviceAndDriverInstallation",
+] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
