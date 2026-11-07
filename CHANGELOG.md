@@ -3,6 +3,16 @@
 All notable changes to this project are listed here. The format follows
 "Keep a Changelog", and versions follow semantic versioning.
 
+## [Unreleased]
+
+### Added
+
+- `keyhop device rate <hz> <hz>` sets the wired and wireless polling rates together.
+
+### Fixed
+
+- Linux: the keyboard is now found when a Keychron 2.4 GHz receiver is plugged in as well.
+
 ## [0.1.0] - Unreleased
 
 First release.

@@ -32,6 +32,7 @@ See [Keyboard settings](/features/keyboard-settings) for details.
 |---|---|
 | `keyhop device` | Shows firmware, lighting, polling rate, debounce, sleep and snap-click. |
 | `keyhop device rate <hz>` | Wired polling rate: `8000` `4000` `2000` `1000` `500` `250` `125`. |
+| `keyhop device rate <hz> <hz>` | Wired and wireless polling rates. Wireless: `8000` `4000` `2000` `1000` `500`. |
 | `keyhop device sleep <backlight> <sleep>` | Timeouts in seconds (at least 5 and 60). |
 | `keyhop device debounce <press> <release>` | Press `0`–`50`, release `1`–`50`. |
 | `keyhop device snap <1-5> <type> <key> <key>` | Snap-click pair; type `last`, `first`, `second` or `cancel`. |

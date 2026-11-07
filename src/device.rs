@@ -51,6 +51,12 @@ pub fn rate_hz(idx: u8) -> u32 {
 pub fn rate_index(hz: u32) -> Option<u8> {
     (0..=6u8).find(|&i| rate_hz(i) == hz)
 }
+/// Wireless polling rate index. Only indexes 0..=4 (8000–500 Hz) are allowed:
+/// the rate info reply advertises masks 0x7F and 0x1F, and it is not confirmed
+/// which one applies to wireless, so the stricter one is used.
+pub fn wireless_rate_index(hz: u32) -> Option<u8> {
+    rate_index(hz).filter(|&i| i <= 4)
+}
 
 pub fn cmd(bytes: &[u8]) -> [u8; 32] {
     let mut b = [0u8; 32];
@@ -340,6 +346,7 @@ fn show(k: &mut Kbd) -> Result<(), String> {
 
 pub const USAGE_TEXT: &str = "  keyhop device                 show keyboard settings (Keychron raw HID)
   keyhop device rate <hz>       set wired polling rate: 8000 4000 2000 1000 500 250 125
+  keyhop device rate <hz> <hz>  set wired and wireless rates; wireless: 8000 4000 2000 1000 500
   keyhop device sleep <s> <s>   backlight-off and sleep timeouts in seconds
   keyhop device debounce <press> <release>
   keyhop device snap <1-5> <last|first|second|cancel> <key> <key>
@@ -362,6 +369,14 @@ pub fn main(args: &[&str]) -> Result<(), String> {
             let idx = rate_index(num(hz)?).ok_or("rate must be 8000, 4000, 2000, 1000, 500, 250 or 125")?;
             let cur = parse_rate(&k.misc(&[RATE_GET])?);
             let r = k.misc(&[RATE_SET, idx, cur.wireless.min(6), 0])?;
+            expect_ok(&r, "rate")?;
+        }
+        ["rate", hz, whz] => {
+            k.writable()?;
+            let idx = rate_index(num(hz)?).ok_or("rate must be 8000, 4000, 2000, 1000, 500, 250 or 125")?;
+            let widx = wireless_rate_index(num(whz)?)
+                .ok_or("wireless rate must be 8000, 4000, 2000, 1000 or 500")?;
+            let r = k.misc(&[RATE_SET, idx, widx, 0])?;
             expect_ok(&r, "rate")?;
         }
         ["sleep", b, s] => {
@@ -440,6 +455,10 @@ mod tests {
         let r = reply(&[0xa7, 0x0d, 0, 0x40, 0x1f, 0x7f, 0, 0, 0x40, 0x1f, 0x7f, 0, 0, 0x7d, 0, 0x40, 0x40, 1]);
         assert_eq!(parse_rate(&r), Rate { wired: 0, wireless: 0 });
         assert_eq!(rate_hz(0), 8000);
+        assert_eq!(wireless_rate_index(1000), Some(3));
+        assert_eq!(wireless_rate_index(500), Some(4));
+        assert_eq!(wireless_rate_index(250), None);
+        assert_eq!(wireless_rate_index(999), None);
         let s = parse_sleep(&reply(&[0xa7, 0x0b, 0, 0x58, 0x02, 0x20, 0x1c]));
         assert_eq!(s, Sleep { backlight_s: 600, sleep_s: 7200 });
         let d = parse_debounce(&reply(&[0xa7, 0x05, 0, 1, 0, 0x32]));

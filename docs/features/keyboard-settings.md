@@ -40,6 +40,15 @@ How often the keyboard reports to the computer. Accepted values: `8000`,
 the wireless one. Lower rates use less power and CPU; higher rates lower input
 latency.
 
+To set the wireless rate as well, give it as a second value:
+
+```sh
+keyhop device rate 8000 1000   # wired 8000 Hz, wireless 1000 Hz
+```
+
+The wireless rate accepts `8000`, `4000`, `2000`, `1000` and `500` Hz. The
+keyboard applies it in 2.4 GHz mode. A lower wireless rate saves battery.
+
 ::: tip Hidden in the vendor app
 On the V1 Ultra 8K the manufacturer's app doesn't show the polling rate or the
 sleep timers, although the firmware supports both.
