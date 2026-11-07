@@ -3,7 +3,7 @@
 All notable changes to this project are listed here. The format follows
 "Keep a Changelog", and versions follow semantic versioning.
 
-## [Unreleased]
+## [0.1.1] - 2026-11-07
 
 ### Added
 

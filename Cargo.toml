@@ -1,6 +1,6 @@
 [package]
 name = "keyhop"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Lean cross-platform keyboard helper: app-launch hotkeys, smooth scrolling, encrypted keyboard/mouse sharing, file transfer and keyboard settings"
 license = "MIT"
