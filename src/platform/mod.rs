@@ -6,7 +6,7 @@
 //!   cursor warp) and reports whether the cursor sits on a screen edge.
 //! * `set_remote(on)` – stop/start local delivery of physical input.
 //! * `screen_bounds()` – union of all displays, if the platform can tell.
-//! * `open_raw_hid(vid, usage_page, usage)` – opens a vendor raw HID interface
+//! * `open_raw_hid(vid, usage_page, usage, prefer)` – opens a vendor raw HID interface
 //!   as `RawHid` (plus its product ID); `RawHid::transfer` sends one 32-byte
 //!   report and returns the reply that echoes it.
 

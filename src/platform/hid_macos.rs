@@ -72,7 +72,7 @@ unsafe fn set_int(d: Ref, key: &[u8], v: i32) {
 }
 
 /// Open the first HID interface with this vendor ID and usage; returns it and its product ID.
-pub fn open_raw_hid(vid: u16, usage_page: u16, usage: u16) -> Result<(RawHid, u16), String> {
+pub fn open_raw_hid(vid: u16, usage_page: u16, usage: u16, _prefer: &[u16]) -> Result<(RawHid, u16), String> {
     unsafe {
         let m = IOHIDManagerCreate(std::ptr::null_mut(), 0);
         let d = CFDictionaryCreateMutable(

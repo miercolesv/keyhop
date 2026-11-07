@@ -41,11 +41,18 @@ pub fn descriptor_has_usage(d: &[u8], page: u16, usage: u16) -> bool {
     false
 }
 
-/// Open the first hidraw node with this vendor ID and usage; returns it and its product ID.
-pub fn open_raw_hid(vid: u16, usage_page: u16, usage: u16) -> Result<(RawHid, u16), String> {
-    let dir = std::fs::read_dir("/sys/class/hidraw").map_err(|e| format!("/sys/class/hidraw: {e}"))?;
+/// Open a hidraw node with this vendor ID and usage; returns it and its product ID.
+/// A node whose product ID is in `prefer` wins over others (e.g. a 2.4 GHz receiver
+/// from the same vendor); otherwise the first one that opens is returned.
+pub fn open_raw_hid(vid: u16, usage_page: u16, usage: u16, prefer: &[u16]) -> Result<(RawHid, u16), String> {
+    let mut ents: Vec<_> = std::fs::read_dir("/sys/class/hidraw")
+        .map_err(|e| format!("/sys/class/hidraw: {e}"))?
+        .flatten()
+        .collect();
+    ents.sort_by_key(|e| e.file_name()); // stable order across runs
     let mut denied = None;
-    for ent in dir.flatten() {
+    let mut fallback = None;
+    for ent in ents {
         let base = ent.path().join("device");
         let Ok(uevent) = std::fs::read_to_string(base.join("uevent")) else { continue };
         let Some((v, pid)) = parse_hid_id(&uevent) else { continue };
@@ -55,11 +62,14 @@ pub fn open_raw_hid(vid: u16, usage_page: u16, usage: u16) -> Result<(RawHid, u1
         }
         let node = std::path::Path::new("/dev").join(ent.file_name());
         match OpenOptions::new().read(true).write(true).open(&node) {
-            Ok(f) => return Ok((RawHid { f }, pid)),
+            Ok(f) if prefer.contains(&pid) => return Ok((RawHid { f }, pid)),
+            Ok(f) => {
+                fallback.get_or_insert((RawHid { f }, pid));
+            }
             Err(e) => denied = Some(format!("{}: {e} (install packaging/99-keyhop-uinput.rules)", node.display())),
         }
     }
-    Err(denied.unwrap_or_else(|| format!("no keyboard found with vendor 0x{vid:04X} raw HID interface")))
+    fallback.ok_or_else(|| denied.unwrap_or_else(|| format!("no keyboard found with vendor 0x{vid:04X} raw HID interface")))
 }
 
 impl RawHid {

@@ -46,7 +46,7 @@ unsafe fn caps(h: HANDLE) -> Option<HIDP_CAPS> {
 }
 
 /// Open the first HID interface with this vendor ID and usage; returns it and its product ID.
-pub fn open_raw_hid(vid: u16, usage_page: u16, usage: u16) -> Result<(RawHid, u16), String> {
+pub fn open_raw_hid(vid: u16, usage_page: u16, usage: u16, _prefer: &[u16]) -> Result<(RawHid, u16), String> {
     unsafe {
         let mut guid: GUID = std::mem::zeroed();
         HidD_GetHidGuid(&mut guid);

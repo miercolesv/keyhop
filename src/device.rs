@@ -166,7 +166,7 @@ fn expect_ok(r: &[u8; 32], what: &str) -> Result<(), String> {
 
 /// Product ID of a connected keyboard whose firmware keyhop has verified.
 pub fn supported_keyboard() -> Option<u16> {
-    platform::open_raw_hid(VID, USAGE_PAGE, USAGE).ok().map(|(_, pid)| pid).filter(|p| VERIFIED_PIDS.contains(p))
+    platform::open_raw_hid(VID, USAGE_PAGE, USAGE, VERIFIED_PIDS).ok().map(|(_, pid)| pid).filter(|p| VERIFIED_PIDS.contains(p))
 }
 
 struct Kbd {
@@ -176,7 +176,7 @@ struct Kbd {
 
 impl Kbd {
     fn open() -> Result<Kbd, String> {
-        let (hid, pid) = platform::open_raw_hid(VID, USAGE_PAGE, USAGE)?;
+        let (hid, pid) = platform::open_raw_hid(VID, USAGE_PAGE, USAGE, VERIFIED_PIDS)?;
         Ok(Kbd { hid, pid })
     }
     fn ask(&mut self, out: [u8; 32]) -> Result<[u8; 32], String> {
